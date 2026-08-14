@@ -1,0 +1,26 @@
+CONTRIBUTING.md
+  s_0b04f71492add0::t_2ebb697e2525ad 26-27
+.github/workflows/pr.yml
+  s_0b04f71492add0::t_8f3d2ad5f23add 64-65,71-73
+  s_0b04f71492add0::t_8e0f4971ad0e90 27-30
+  s_0b04f71492add0::t_c660ed30a588f3 6-7
+  s_0b04f71492add0::t_766dfc9bd46053 49-53,55,60
+  s_0b04f71492add0::t_934d8eda7a9b88 114-117
+  s_0b04f71492add0::t_5bdfe1a031d53f 74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e48db970406136ba242b1e71bd56195bd502b5e9",
+  "prompts": {},
+  "sessions": {
+    "s_0b04f71492add0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "606f7440-6c02-4b37-b106-05fcc0cf7bf0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Sebastian Messingfeld <sebastian@messeb.com>"
+    }
+  }
+}
