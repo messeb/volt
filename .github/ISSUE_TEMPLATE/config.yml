@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/messeb/volt/discussions
+    about: Use Discussions for questions and general ideas
+  - name: Security Vulnerability
+    url: https://github.com/messeb/volt/security/advisories/new
+    about: Report security issues privately
+

@@ -1,0 +1,13 @@
+title: "[Announcement] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: Use this template for releases, breaking changes, or project news.
+  - type: textarea
+    id: announcement
+    attributes:
+      label: Announcement
+    validations:
+      required: true
+

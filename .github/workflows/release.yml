@@ -1,0 +1,190 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 1.2.0 (branch release/1.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release ${{ inputs.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Validate version input
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version must be X.Y.Z, got $VERSION"
+            exit 1
+          fi
+
+      - name: Check out release branch
+        uses: actions/checkout@v7
+        with:
+          ref: release/${{ inputs.version }}
+          fetch-depth: 0
+
+      - name: Set up Java and Maven authentication
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      - name: Check branch holds the matching release candidate
+        run: |
+          current="$(mvn --quiet --no-transfer-progress help:evaluate \
+            -Dexpression=project.version -DforceStdout)"
+          # A re-run after a partial failure sees the final version already set.
+          if [[ "$current" != "$VERSION-rc" && "$current" != "$VERSION" ]]; then
+            echo "::error::release/$VERSION holds version $current," \
+              "expected $VERSION-rc"
+            exit 1
+          fi
+
+      # Reachability first, version order as a fallback: a release pull request
+      # merged as a squash leaves the previous tag off main's history.
+      - name: Resolve previous tag
+        run: |
+          previous="$(git describe --tags --abbrev=0 --match 'v*' \
+            2>/dev/null || true)"
+          if [[ -z "$previous" ]]; then
+            previous="$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
+          fi
+          echo "PREVIOUS_TAG=$previous" >> "$GITHUB_ENV"
+          echo "previous tag: ${previous:-none}"
+
+      - name: Set release version
+        run: |
+          mvn --batch-mode --no-transfer-progress versions:set \
+            -DnewVersion="$VERSION" -DgenerateBackupPoms=false
+
+      - name: Stamp changelog
+        run: |
+          python3 - "$VERSION" "$PREVIOUS_TAG" <<'PY'
+          import datetime, pathlib, re, sys
+
+          version, previous = sys.argv[1], sys.argv[2]
+          repo = "https://github.com/messeb/volt"
+          path = pathlib.Path("CHANGELOG.md")
+          text = path.read_text(encoding="utf-8")
+
+          if f"## [{version}]" in text:
+              print(f"changelog already has {version}, leaving it untouched")
+              raise SystemExit(0)
+
+          today = datetime.date.today().isoformat()
+          text = text.replace(
+              "## [Unreleased]",
+              f"## [Unreleased]\n\n## [{version}] - {today}",
+              1,
+          )
+
+          compare = (
+              f"{repo}/compare/{previous}...v{version}"
+              if previous
+              else f"{repo}/releases/tag/v{version}"
+          )
+          text = re.sub(
+              r"^\[Unreleased\]: .*$",
+              f"[Unreleased]: {repo}/compare/v{version}...HEAD\n"
+              f"[{version}]: {compare}",
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Verify
+        run: mvn --batch-mode --no-transfer-progress verify
+
+      - name: Commit and push release version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "nothing to commit, version already set"
+          else
+            git add pom.xml CHANGELOG.md
+            git commit --message "chore(release): set version to $VERSION"
+            git push origin "release/$VERSION"
+          fi
+
+      - name: Publish to GitHub Packages
+        run: mvn --batch-mode --no-transfer-progress deploy -DskipTests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create annotated tag
+        run: |
+          git tag --annotate "v$VERSION" --message "Release $VERSION"
+          git push origin "v$VERSION"
+
+      - name: Create GitHub release
+        run: |
+          notes_args=(--generate-notes)
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            notes_args+=(--notes-start-tag "$PREVIOUS_TAG")
+          fi
+          gh release create "v$VERSION" \
+            --target "release/$VERSION" \
+            --title "v$VERSION" \
+            --latest \
+            "${notes_args[@]}"
+
+      - name: Open pull request to main
+        run: |
+          existing="$(gh pr list --head "release/$VERSION" --base main \
+            --state open --json number --jq '.[0].number')"
+          if [[ -n "$existing" ]]; then
+            echo "PR #$existing already open"
+            exit 0
+          fi
+          cat > pr-body.md <<EOF
+          Merges the released \`$VERSION\` version bump and changelog back
+          into \`main\`.
+
+          - Tag: \`v$VERSION\`
+          - Package: \`net.messeb:volt:$VERSION\`
+
+          Merge this to close out \`release/$VERSION\`.
+          EOF
+
+          gh pr create \
+            --base main \
+            --head "release/$VERSION" \
+            --title "chore(release): $VERSION" \
+            --body-file pr-body.md
+          rm -f pr-body.md
+
+      - name: Summary
+        run: |
+          {
+            echo "### Released $VERSION"
+            echo
+            echo "- Tag \`v$VERSION\` created and marked latest"
+            echo "- \`net.messeb:volt:$VERSION\` published to GitHub Packages"
+            echo "- Pull request opened against \`main\`"
+          } >> "$GITHUB_STEP_SUMMARY"
