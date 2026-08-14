@@ -159,14 +159,27 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
         run: |
-          id="$(gh api "/user/packages/maven/$PACKAGE_NAME/versions" \
-            --paginate \
-            --jq ".[] | select(.name == \"$RC_VERSION\") | .id" \
-            2>/dev/null || true)"
+          # gh api prints HTTP error bodies to stdout, so branch on its exit
+          # status: a 404 here just means nothing has been published yet.
+          if ! versions="$(gh api \
+            "/user/packages/maven/$PACKAGE_NAME/versions" \
+            --paginate --slurp 2>/dev/null)"; then
+            echo "package $PACKAGE_NAME does not exist yet, nothing to delete"
+            exit 0
+          fi
+
+          id="$(jq -r --arg name "$RC_VERSION" \
+            'flatten | map(select(.name == $name)) | .[0].id // empty' \
+            <<<"$versions")"
 
           if [[ -z "$id" ]]; then
-            echo "no existing $RC_VERSION package, nothing to delete"
+            echo "no existing $RC_VERSION package version, nothing to delete"
             exit 0
+          fi
+
+          if [[ ! "$id" =~ ^[0-9]+$ ]]; then
+            echo "::error::resolved a non-numeric package version id: $id"
+            exit 1
           fi
 
           gh api --method DELETE \
