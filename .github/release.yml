@@ -15,6 +15,9 @@ changelog:
       labels:
         - "bug"
         - "fix"
+    - title: "Security"
+      labels:
+        - "security"
     - title: "Documentation"
       labels:
         - "documentation"
@@ -22,6 +25,7 @@ changelog:
       labels:
         - "dependencies"
         - "refactor"
+        - "ci"
     - title: "Other Changes"
       labels:
         - "*"

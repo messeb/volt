@@ -3,6 +3,7 @@
 [![PR](https://github.com/messeb/volt/actions/workflows/pr.yml/badge.svg)](https://github.com/messeb/volt/actions/workflows/pr.yml)
 [![GitHub release](https://img.shields.io/github/v/release/messeb/volt)](https://github.com/messeb/volt/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Java](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://adoptium.net/)
 
 Volt is a small JDK 21+ HTTP framework with an Express-like fluent API. The core
 uses `com.sun.net.httpserver`, virtual threads, and no mandatory runtime
@@ -12,10 +13,51 @@ Create an app with `Volt.create()` for port 8080, `Volt.create(port)` for an
 explicit port, or the terse `Volt.port(port)` alias. All three return the same
 fluent `Volt` API; the port is fixed at creation.
 
+```java
+Volt.create()
+    .get("/users/{id}", ctx -> ctx.json(lookup(ctx.path("id"))))
+    .start();
+```
+
+## Features
+
+- **Fluent routing** — `get`, `post`, `put`, `delete`, `patch`, `head`, and
+  `options`, with `{name}` path parameters, trailing wildcards, and route
+  groups.
+- **Request data without ceremony** — path, query, header, form, and bounded
+  body access from a single `Context`.
+- **Authentication as a route option** — API key and bearer schemes, no
+  configuration files.
+- **JSON in the core** — a dependency-free codec behind a `JsonCodec`
+  interface you can swap for Jackson.
+- **CORS and exception mapping** — declarative policies and typed
+  `HttpException` subclasses that map to the right status.
+- **Middleware** — before and after filters, scoped to routes or groups.
+- **Virtual threads** — a blocking programming model on JDK 21 virtual
+  threads; no async API is exposed.
+- **Testable without a socket** — `VoltTest` drives handlers in memory.
+- **No mandatory runtime dependencies** — the core needs nothing beyond the
+  JDK.
+
+## Why Volt
+
+| | Volt | Spring Boot / Quarkus | Javalin | Raw `HttpServer` |
+| --- | --- | --- | --- | --- |
+| Runtime dependencies | none | large tree | Jetty | none |
+| Configuration | code only | annotations, DI, scanning | code | code |
+| Routing | built in | built in | built in | manual |
+| Auth primitives | built in | built in | via plugins | manual |
+| Concurrency | virtual threads | thread pools or reactive | Jetty threads | manual |
+
+Volt is aimed at services with a handful of endpoints, internal tools, embedded
+local APIs, and teaching HTTP without a framework's cognitive load. It is not
+aimed at high-throughput edge workloads — use a Netty-based stack for those.
+
 ## Installation
 
-Volt packages are published to GitHub Packages. Replace `VERSION` with a
-released version:
+Volt packages are published to GitHub Packages. The snippet below pins the
+current release; every published version is listed on the
+[releases page](https://github.com/messeb/volt/releases).
 
 ```xml
 <repositories>
@@ -29,7 +71,7 @@ released version:
     <dependency>
         <groupId>net.messeb</groupId>
         <artifactId>volt</artifactId>
-        <version>VERSION</version>
+        <version>1.0.0</version>
     </dependency>
 </dependencies>
 ```
@@ -240,8 +282,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and the
 
 ## Support and security
 
-Use [SUPPORT.md](SUPPORT.md) for help. Report vulnerabilities privately as
-described in [SECURITY.md](SECURITY.md).
+Ask questions in [Discussions](https://github.com/messeb/volt/discussions), or
+see [SUPPORT.md](SUPPORT.md). Report vulnerabilities privately as described in
+[SECURITY.md](SECURITY.md).
 
 ## License
 
