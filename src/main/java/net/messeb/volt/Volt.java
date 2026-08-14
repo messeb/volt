@@ -434,13 +434,13 @@ public final class Volt implements AutoCloseable {
                 validateHeaders(exchange);
                 requestPath = PathPattern.RequestPath.parse(context.uri().getRawPath());
                 dispatch(context, requestPath);
-            } catch (VirtualMachineError | ThreadDeath | LinkageError fatal) {
+            } catch (VirtualMachineError | LinkageError fatal) {
                 exchange.close();
                 throw fatal;
             } catch (Throwable failure) {
                 try {
                     handleFailure(failure, context);
-                } catch (VirtualMachineError | ThreadDeath | LinkageError fatal) {
+                } catch (VirtualMachineError | LinkageError fatal) {
                     exchange.close();
                     throw fatal;
                 }
@@ -448,13 +448,13 @@ public final class Volt implements AutoCloseable {
             if (requestPath != null) {
                 try {
                     runFilters(afterFilters, requestPath, context, false);
-                } catch (VirtualMachineError | ThreadDeath | LinkageError fatal) {
+                } catch (VirtualMachineError | LinkageError fatal) {
                     exchange.close();
                     throw fatal;
                 } catch (Throwable failure) {
                     try {
                         handleFailure(failure, context);
-                    } catch (VirtualMachineError | ThreadDeath | LinkageError fatal) {
+                    } catch (VirtualMachineError | LinkageError fatal) {
                         exchange.close();
                         throw fatal;
                     }
@@ -584,7 +584,7 @@ public final class Volt implements AutoCloseable {
                 context.status(500);
                 context.errorJson("internal server error");
             }
-        } catch (VirtualMachineError | ThreadDeath | LinkageError fatal) {
+        } catch (VirtualMachineError | LinkageError fatal) {
             throw fatal;
         } catch (Throwable mapperFailure) {
             LOGGER.log(System.Logger.Level.ERROR, "exception mapper failed", mapperFailure);
@@ -596,7 +596,7 @@ public final class Volt implements AutoCloseable {
         for (Cors cors : corsPolicies) {
             try {
                 cors.applyErrorHeaders(context);
-            } catch (VirtualMachineError | ThreadDeath | LinkageError fatal) {
+            } catch (VirtualMachineError | LinkageError fatal) {
                 throw fatal;
             } catch (Throwable corsFailure) {
                 LOGGER.log(System.Logger.Level.WARNING, "failed to apply CORS error headers", corsFailure);
