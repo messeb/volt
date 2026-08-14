@@ -1,0 +1,9 @@
+# Default owner
+* @messeb
+
+# Project-specific ownership
+/src/ @messeb
+/examples/ @messeb
+/.github/ @messeb
+*.md @messeb
+

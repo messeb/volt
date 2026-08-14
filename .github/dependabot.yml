@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # At most three open pull requests: Maven minor/patch, Maven major,
+  # and CI actions. Review assignment comes from CODEOWNERS.
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      maven-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      maven-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 1
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      ci-actions:
+        patterns:
+          - "*"

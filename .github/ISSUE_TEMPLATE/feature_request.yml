@@ -1,0 +1,34 @@
+name: Feature Request
+description: Suggest a focused addition or improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem or use case should Volt address?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Show the desired public API when relevant.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Project Constraints
+      options:
+        - label: This proposal can preserve zero mandatory runtime dependencies.
+        - label: I have considered whether this belongs in application code or an optional module.
+

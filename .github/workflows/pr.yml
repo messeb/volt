@@ -1,0 +1,176 @@
+name: PR
+
+on:
+  pull_request:
+    branches: [main, "release/**"]
+    # "edited" so fixing the description re-runs the convention check.
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: ["release/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  conventions:
+    name: Check branch and issue reference
+    # Release branches and Dependabot own their branch names.
+    if: >-
+      github.event_name == 'pull_request' &&
+      !startsWith(github.head_ref, 'release/') &&
+      !startsWith(github.head_ref, 'dependabot/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    concurrency:
+      group: conventions-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Check branch name
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          pattern='^(feat|fix)/[0-9]+-[a-z0-9]+(-[a-z0-9]+)*$'
+          if [[ ! "$BRANCH" =~ $pattern ]]; then
+            echo "::error::branch $BRANCH must be named" \
+              "feat/{issue}-{slug} or fix/{issue}-{slug}," \
+              "for example feat/42-route-groups"
+            exit 1
+          fi
+
+      - name: Check the pull request closes its issue
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          raw="${BRANCH#*/}"
+          raw="${raw%%-*}"
+          # feat/01-... refers to issue #1: compare numerically, and accept
+          # either spelling in the description.
+          issue=$((10#$raw))
+          keywords='([Cc]loses|[Ff]ixes|[Rr]esolves)'
+          if [[ ! "$BODY" =~ $keywords[[:space:]]+#0*$issue([^0-9]|$) ]]; then
+            echo "::error::the description must contain" \
+              "\"Closes #$issue\" to link the issue from branch $BRANCH"
+            exit 1
+          fi
+          echo "branch $BRANCH is linked to issue #$issue"
+
+  verify:
+    name: Build and test on Java 21
+    # Editing the description changes no code, so skip the build for it.
+    if: github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    concurrency:
+      group: verify-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Verify
+        run: mvn --batch-mode --no-transfer-progress verify
+
+      - name: Read project version
+        id: version
+        run: |
+          version="$(mvn --quiet --no-transfer-progress help:evaluate \
+            -Dexpression=project.version -DforceStdout)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Upload package
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: volt-${{ github.sha }}
+          path: target/volt-*.jar
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-rc:
+    name: Publish release candidate
+    needs: verify
+    if: >-
+      github.event_name == 'push' &&
+      endsWith(needs.verify.outputs.version, '-rc')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    concurrency:
+      group: publish-rc-${{ github.ref }}
+      cancel-in-progress: false
+
+    env:
+      RC_VERSION: ${{ needs.verify.outputs.version }}
+      PACKAGE_NAME: net.messeb.volt
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Java and Maven authentication
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      - name: Check release branch matches the release candidate version
+        run: |
+          branch_version="${GITHUB_REF_NAME#release/}"
+          if [[ "$RC_VERSION" != "$branch_version-rc" ]]; then
+            echo "::error::branch $GITHUB_REF_NAME expects version" \
+              "$branch_version-rc but pom.xml is $RC_VERSION"
+            exit 1
+          fi
+
+      # GitHub Packages rejects redeploying an existing non-SNAPSHOT version.
+      # Only one release candidate exists per version, so drop the previous one
+      # before deploying. Requires a PAT with delete:packages; GITHUB_TOKEN
+      # cannot delete package versions.
+      - name: Delete previous release candidate package
+        env:
+          GH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::error::secret PACKAGES_TOKEN is required to overwrite" \
+              "the $RC_VERSION package"
+            exit 1
+          fi
+
+          id="$(gh api "/user/packages/maven/$PACKAGE_NAME/versions" \
+            --paginate \
+            --jq ".[] | select(.name == \"$RC_VERSION\") | .id" \
+            2>/dev/null || true)"
+
+          if [[ -z "$id" ]]; then
+            echo "no existing $RC_VERSION package, nothing to delete"
+            exit 0
+          fi
+
+          gh api --method DELETE \
+            "/user/packages/maven/$PACKAGE_NAME/versions/$id"
+          echo "deleted $PACKAGE_NAME $RC_VERSION (version id $id)"
+
+      - name: Publish release candidate to GitHub Packages
+        run: mvn --batch-mode --no-transfer-progress deploy -DskipTests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

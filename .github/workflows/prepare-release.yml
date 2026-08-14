@@ -1,0 +1,103 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without prefix or suffix, e.g. 1.2.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Cut release/${{ inputs.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      VERSION: ${{ inputs.version }}
+
+    steps:
+      - name: Validate version input
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version must be X.Y.Z, got $VERSION"
+            exit 1
+          fi
+
+      # Pushed with a PAT on purpose: a branch pushed with GITHUB_TOKEN does
+      # not trigger other workflows, and the PR pipeline is what publishes the
+      # release candidate.
+      - name: Check out main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PACKAGES_TOKEN }}
+
+      - name: Check release branch and tag are free
+        run: |
+          if git ls-remote --exit-code --heads origin "release/$VERSION" \
+            >/dev/null 2>&1; then
+            echo "::error::branch release/$VERSION already exists"
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "v$VERSION" \
+            >/dev/null 2>&1; then
+            echo "::error::tag v$VERSION already exists"
+            exit 1
+          fi
+
+      - name: Check no other release branch is open
+        run: |
+          open="$(git ls-remote --heads origin 'refs/heads/release/*' \
+            | sed 's#.*refs/heads/##')"
+          if [[ -n "$open" ]]; then
+            echo "::error::close the open release branch first: $open"
+            exit 1
+          fi
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Create release branch
+        run: git switch --create "release/$VERSION"
+
+      - name: Set release candidate version
+        run: |
+          mvn --batch-mode --no-transfer-progress versions:set \
+            -DnewVersion="$VERSION-rc" -DgenerateBackupPoms=false
+
+      - name: Verify
+        run: mvn --batch-mode --no-transfer-progress verify
+
+      - name: Commit and push release branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pom.xml
+          git commit --message "chore(release): set version to $VERSION-rc"
+          git push --set-upstream origin "release/$VERSION"
+
+      - name: Summary
+        run: |
+          {
+            echo "### Prepared release/$VERSION"
+            echo
+            echo "- pom.xml version: \`$VERSION-rc\`"
+            echo "- The PR pipeline publishes \`net.messeb:volt:$VERSION-rc\`"
+            echo "  to GitHub Packages and republishes it on every push."
+            echo "- Merge fixes into \`release/$VERSION\`, then run **Release**."
+          } >> "$GITHUB_STEP_SUMMARY"
