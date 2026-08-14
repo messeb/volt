@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-14
+
 ### Added
 
 - JDK 21 virtual-thread HTTP server with fluent routing.
@@ -20,5 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - The branded public entry point is `Volt`, with `create()`, `create(int)`, and
   `port(int)` factories.
 
-[Unreleased]: https://github.com/messeb/volt/commits/main
+[Unreleased]: https://github.com/messeb/volt/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/messeb/volt/releases/tag/v1.0.0
 
