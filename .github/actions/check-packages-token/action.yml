@@ -1,0 +1,61 @@
+name: Check PACKAGES_TOKEN
+description: >-
+  Fails with an actionable message when the release token is missing, expired,
+  malformed, or lacks the permissions the release workflows need.
+
+inputs:
+  token:
+    description: The PACKAGES_TOKEN secret
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check PACKAGES_TOKEN
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        setup="Create a classic token at https://github.com/settings/tokens"
+        setup="$setup with the repo, write:packages and delete:packages"
+        setup="$setup scopes, then store it as PACKAGES_TOKEN under"
+        setup="$setup Settings > Secrets and variables > Actions."
+
+        if [[ -z "$GH_TOKEN" ]]; then
+          echo "::error::secret PACKAGES_TOKEN is not set. $setup"
+          exit 1
+        fi
+
+        if [[ "$GH_TOKEN" != "$(tr -d '[:space:]' <<<"$GH_TOKEN")" ]]; then
+          echo "::error::PACKAGES_TOKEN contains whitespace. Re-add it" \
+            "without a trailing newline: gh secret set PACKAGES_TOKEN"
+          exit 1
+        fi
+
+        scopes="$(curl -sS -o /dev/null -D - \
+          -H "Authorization: token $GH_TOKEN" \
+          https://api.github.com/user \
+          | tr -d '\r' | sed -n 's/^[Xx]-[Oo][Aa]uth-[Ss]copes: //p')"
+
+        if ! gh api user --jq '.login' >/dev/null 2>&1; then
+          echo "::error::PACKAGES_TOKEN was rejected by GitHub. It is" \
+            "expired, revoked, or malformed. If it is a fine-grained token," \
+            "make sure this repository is selected and Contents is set to" \
+            "Read and write. $setup"
+          exit 1
+        fi
+
+        if ! gh api "repos/$GITHUB_REPOSITORY" \
+          --jq '.permissions.push' 2>/dev/null | grep -q true; then
+          echo "::error::PACKAGES_TOKEN cannot push to" \
+            "$GITHUB_REPOSITORY. Grant the repo scope. $setup"
+          exit 1
+        fi
+
+        echo "token scopes: ${scopes:-none reported (fine-grained token)}"
+        for scope in write:packages delete:packages; do
+          if [[ ",${scopes// /}," != *",$scope,"* ]]; then
+            echo "::warning::token does not report the $scope scope;" \
+              "publishing or overwriting the release candidate may fail"
+          fi
+        done
