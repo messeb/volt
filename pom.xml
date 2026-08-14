@@ -6,7 +6,7 @@
 
     <groupId>net.messeb</groupId>
     <artifactId>volt</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>1.0.0-rc</version>
     <packaging>jar</packaging>
 
     <name>Volt</name>
