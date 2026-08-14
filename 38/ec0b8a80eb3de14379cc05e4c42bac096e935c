@@ -1,0 +1,14 @@
+README.md
+  h_a51360f058d7fc 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "38ec0b8a80eb3de14379cc05e4c42bac096e935c",
+  "prompts": {},
+  "humans": {
+    "h_a51360f058d7fc": {
+      "author": "Sebastian Messingfeld <sebastian@messeb.com>"
+    }
+  }
+}
