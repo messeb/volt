@@ -3,6 +3,8 @@ name: PR
 on:
   pull_request:
     branches: [main, "release/**"]
+    # "edited" so fixing the description re-runs the convention check.
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: ["release/**"]
   workflow_dispatch:
@@ -10,10 +12,6 @@ on:
 permissions:
   contents: read
   packages: write
-
-concurrency:
-  group: pr-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   conventions:
@@ -25,6 +23,10 @@ jobs:
       !startsWith(github.head_ref, 'dependabot/')
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
+    concurrency:
+      group: conventions-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
       - name: Check branch name
@@ -44,21 +46,31 @@ jobs:
           BODY: ${{ github.event.pull_request.body }}
           BRANCH: ${{ github.head_ref }}
         run: |
-          issue="${BRANCH#*/}"
-          issue="${issue%%-*}"
+          raw="${BRANCH#*/}"
+          raw="${raw%%-*}"
+          # feat/01-... refers to issue #1: compare numerically, and accept
+          # either spelling in the description.
+          issue=$((10#$raw))
           keywords='([Cc]loses|[Ff]ixes|[Rr]esolves)'
-          if [[ ! "$BODY" =~ $keywords[[:space:]]+#$issue([^0-9]|$) ]]; then
+          if [[ ! "$BODY" =~ $keywords[[:space:]]+#0*$issue([^0-9]|$) ]]; then
             echo "::error::the description must contain" \
               "\"Closes #$issue\" to link the issue from branch $BRANCH"
             exit 1
           fi
+          echo "branch $BRANCH is linked to issue #$issue"
 
   verify:
     name: Build and test on Java 21
+    # Editing the description changes no code, so skip the build for it.
+    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
       version: ${{ steps.version.outputs.version }}
+
+    concurrency:
+      group: verify-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
     steps:
       - name: Check out source
@@ -98,6 +110,10 @@ jobs:
       endsWith(needs.verify.outputs.version, '-rc')
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    concurrency:
+      group: publish-rc-${{ github.ref }}
+      cancel-in-progress: false
 
     env:
       RC_VERSION: ${{ needs.verify.outputs.version }}

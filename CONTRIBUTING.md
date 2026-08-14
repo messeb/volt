@@ -23,7 +23,8 @@ fix/57-header-case-sensitivity
 
 - Prefix `feat/` for additive work, `fix/` for corrective work, including
   documentation and maintenance.
-- `42` is the issue number.
+- `42` is the issue number. Padding is tolerated — `feat/01-…` links to
+  issue `#1` — but prefer the plain number.
 - The slug is short, kebab-case, and at most four words.
 
 The PR pipeline rejects branches that do not match
