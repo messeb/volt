@@ -45,14 +45,33 @@ runs:
           exit 1
         fi
 
-        if ! gh api "repos/$GITHUB_REPOSITORY" \
-          --jq '.permissions.push' 2>/dev/null | grep -q true; then
-          echo "::error::PACKAGES_TOKEN cannot push to" \
-            "$GITHUB_REPOSITORY. Grant the repo scope. $setup"
+        echo "token scopes: ${scopes:-none reported (fine-grained token)}"
+
+        # repos/{repo}.permissions reports the authenticated *user's* role, so
+        # it says push=true for the owner even when the token grants nothing.
+        # A dry-run push is the only cheap probe that the server actually
+        # authorizes, and it creates nothing.
+        probe="$(git push --dry-run \
+          "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY" \
+          "HEAD:refs/heads/ci/token-write-probe" 2>&1 || true)"
+
+        if grep -qiE 'write access|403|denied|not granted' <<<"$probe"; then
+          echo "::error::PACKAGES_TOKEN authenticates but has no write" \
+            "access to $GITHUB_REPOSITORY. A fine-grained token needs this" \
+            "repository selected with Contents: Read and write; a classic" \
+            "token needs the repo scope. $setup"
+          echo "$probe"
           exit 1
         fi
 
-        echo "token scopes: ${scopes:-none reported (fine-grained token)}"
+        if [[ -n "$scopes" ]] \
+          && [[ ",${scopes// /}," != *",repo,"* ]] \
+          && [[ ",${scopes// /}," != *",public_repo,"* ]]; then
+          echo "::error::PACKAGES_TOKEN carries neither the repo nor the" \
+            "public_repo scope, so it cannot push. $setup"
+          exit 1
+        fi
+
         for scope in write:packages delete:packages; do
           if [[ ",${scopes// /}," != *",$scope,"* ]]; then
             echo "::warning::token does not report the $scope scope;" \
