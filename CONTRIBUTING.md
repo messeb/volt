@@ -2,6 +2,13 @@
 
 Thank you for your interest in contributing.
 
+New here? Start with a
+[good first issue](https://github.com/messeb/volt/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+or something labelled
+[help wanted](https://github.com/messeb/volt/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22).
+For anything you want to talk through before writing code, open a
+[Discussion](https://github.com/messeb/volt/discussions).
+
 ## Development Setup
 
 1. Install JDK 21 or newer and Maven 3.9 or newer.

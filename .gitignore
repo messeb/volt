@@ -6,17 +6,7 @@ target/
 *.ear
 hs_err_pid*
 replay_pid*
-
-# Dependencies
-node_modules/
-vendor/
-
-# Build output
-dist/
-build/
-out/
-*.o
-*.so
+.mvn/wrapper/maven-wrapper.jar
 
 # Environment
 .env
@@ -40,11 +30,6 @@ Thumbs.db
 *.log
 logs/
 
-# Testing
-coverage/
-.pytest_cache/
-
 # Temporary
 tmp/
 temp/
-
