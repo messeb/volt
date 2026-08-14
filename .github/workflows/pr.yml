@@ -120,8 +120,12 @@ jobs:
       PACKAGE_NAME: net.messeb.volt
 
     steps:
+      # persist-credentials: false so the write probe uses PACKAGES_TOKEN and
+      # not the read-only GITHUB_TOKEN checkout would otherwise leave behind.
       - name: Check out source
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Check PACKAGES_TOKEN
         uses: ./.github/actions/check-packages-token
