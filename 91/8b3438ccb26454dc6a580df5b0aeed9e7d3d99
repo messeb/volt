@@ -1,0 +1,56 @@
+.github/dependabot.yml
+  s_0b04f71492add0::t_8c6b88207f8f60 3-41
+  s_0b04f71492add0::t_c821555f84e6c1 1-2
+.github/workflows/pr.yml
+  s_0b04f71492add0::t_fb7369cd54280c 1-18,56-64,66-67,69-85,87-107,109-110,112-142,147-160
+  s_0b04f71492add0::t_e0d6ec46e87c59 65,68,86,108,111
+  s_0b04f71492add0::t_cc6b41d019c1ee 21,24-25
+  s_0b04f71492add0::t_d8360995444b92 19-20,22-23,26-55
+  s_0b04f71492add0::t_23d20a288c0608 143-146
+README.md
+  s_0b04f71492add0::t_ab0e4f0a99b751 3
+  s_0b04f71492add0::t_56749d9d41a565 4-6
+  s_0b04f71492add0::t_c02bb20aaf4a92 7-248
+CONTRIBUTING.md
+  s_0b04f71492add0::t_e67cb8ecaf9092 101-135
+  s_0b04f71492add0::t_09802b80b94f23 83-100
+  s_0b04f71492add0::t_46faa37f0d6aba 10-33
+  s_0b04f71492add0::t_17f51bd6dd3918 54-67
+  s_0b04f71492add0::t_a8c1bc524c0f6f 7-9
+  s_0b04f71492add0::t_bbb8e980f841c7 34-36,51-53
+  s_0b04f71492add0::t_546962aa056ea9 68-70,80-82
+  s_0b04f71492add0::t_48512b2565603e 136-138
+  s_0b04f71492add0::t_74e7042ed1c089 1-6,37-50,71-79,139-142
+pom.xml
+  s_0b04f71492add0::t_25031f415477b2 1-56,58-73,75-78,80-86,88-98
+  s_0b04f71492add0::t_9eafb2a5cd33dc 57,74,79,87
+.github/workflows/release.yml
+  s_0b04f71492add0::t_2194af0a7528e5 64
+  s_0b04f71492add0::t_40c7f9675643f8 65-75
+  s_0b04f71492add0::t_2e1674b53418fd 1-38,40-44,46-63,76-164,175-178,181-190
+  s_0b04f71492add0::t_2e0f57f6433733 165-174,179-180
+  s_0b04f71492add0::t_e0d6ec46e87c59 39,45
+.github/PULL_REQUEST_TEMPLATE.md
+  s_0b04f71492add0::t_af4211cf66430b 28-29
+  s_0b04f71492add0::t_5d2e03db990d22 5-11
+  s_0b04f71492add0::t_26632668310719 1-4,12-27,30-37
+.github/workflows/prepare-release.yml
+  s_0b04f71492add0::t_d3679b770dd93b 1-38,40-67,69-103
+  s_0b04f71492add0::t_e0d6ec46e87c59 39,68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "918b3438ccb26454dc6a580df5b0aeed9e7d3d99",
+  "prompts": {},
+  "sessions": {
+    "s_0b04f71492add0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "606f7440-6c02-4b37-b106-05fcc0cf7bf0",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Sebastian Messingfeld <sebastian@messeb.com>"
+    }
+  }
+}
