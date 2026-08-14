@@ -41,6 +41,13 @@ jobs:
           ref: release/${{ inputs.version }}
           fetch-depth: 0
 
+      # Checked early: the token is only needed by the last step, and finding
+      # out there means discovering it after the release is already published.
+      - name: Check PACKAGES_TOKEN
+        uses: ./.github/actions/check-packages-token
+        with:
+          token: ${{ secrets.PACKAGES_TOKEN }}
+
       - name: Set up Java and Maven authentication
         uses: actions/setup-java@v5
         with:
@@ -154,7 +161,13 @@ jobs:
             --latest \
             "${notes_args[@]}"
 
+      # Opened with the PAT: repositories forbid GITHUB_TOKEN from creating
+      # pull requests by default, and no permissions block can grant it. A
+      # personal access token acts as a user, so the restriction does not
+      # apply, and the pull request also triggers the PR pipeline.
       - name: Open pull request to main
+        env:
+          GH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
         run: |
           existing="$(gh pr list --head "release/$VERSION" --base main \
             --state open --json number --jq '.[0].number')"
