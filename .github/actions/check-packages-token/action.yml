@@ -51,7 +51,9 @@ runs:
         # it says push=true for the owner even when the token grants nothing.
         # A dry-run push is the only cheap probe that the server actually
         # authorizes, and it creates nothing.
-        probe="$(git push --dry-run \
+        # An empty http.extraheader resets the header list, so a credential
+        # persisted by actions/checkout cannot shadow the token under test.
+        probe="$(git -c http.extraheader= push --dry-run \
           "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY" \
           "HEAD:refs/heads/ci/token-write-probe" 2>&1 || true)"
 
