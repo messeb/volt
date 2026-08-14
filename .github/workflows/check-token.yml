@@ -1,0 +1,33 @@
+name: Check Token
+
+# Diagnostic only. Run this before a release, or whenever a release workflow
+# fails on authentication, to see exactly what is wrong with PACKAGES_TOKEN.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check PACKAGES_TOKEN
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Check PACKAGES_TOKEN
+        uses: ./.github/actions/check-packages-token
+        with:
+          token: ${{ secrets.PACKAGES_TOKEN }}
+
+      - name: Summary
+        run: |
+          {
+            echo "### PACKAGES_TOKEN is usable"
+            echo
+            echo "The token is live and can push to \`$GITHUB_REPOSITORY\`."
+            echo "Any scope warnings above still apply to publishing."
+          } >> "$GITHUB_STEP_SUMMARY"

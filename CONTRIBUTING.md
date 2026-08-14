@@ -119,11 +119,21 @@ merge the fix into `main`, then run Prepare Release with the patch version.
 
 ### Repository configuration
 
-- **`PACKAGES_TOKEN`** — a personal access token with `write:packages`,
-  `delete:packages`, and repository `contents: write`. The built-in
+- **`PACKAGES_TOKEN`** — required before the first release. The built-in
   `GITHUB_TOKEN` cannot delete package versions, and a branch it pushes does
-  not trigger the PR workflow. Watch its expiry date; releases fail silently
-  at the publish step once it lapses.
+  not trigger the PR workflow, so both are done with a personal access token.
+
+  1. Create a classic token at
+     [Settings > Developer settings > Personal access tokens > Tokens
+     (classic)](https://github.com/settings/tokens) with the `repo`,
+     `write:packages`, and `delete:packages` scopes.
+  2. Add it to this repository under Settings > Secrets and variables >
+     Actions as `PACKAGES_TOKEN`.
+
+  Watch its expiry date. Dispatch the **Check Token** workflow to verify the
+  secret at any time: it reports whether the token is live, whether it can
+  push to the repository, and which scopes it carries. Prepare Release and the
+  release-candidate publish run the same check before doing any work.
 - **`main`** — protected: pull request required, PR pipeline required to pass,
   one approving review, squash merge.
 - **`release/**`** — protected: pull request required, PR pipeline required to

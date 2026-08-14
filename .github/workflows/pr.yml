@@ -123,6 +123,11 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v7
 
+      - name: Check PACKAGES_TOKEN
+        uses: ./.github/actions/check-packages-token
+        with:
+          token: ${{ secrets.PACKAGES_TOKEN }}
+
       - name: Set up Java and Maven authentication
         uses: actions/setup-java@v5
         with:
@@ -150,12 +155,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
         run: |
-          if [[ -z "$GH_TOKEN" ]]; then
-            echo "::error::secret PACKAGES_TOKEN is required to overwrite" \
-              "the $RC_VERSION package"
-            exit 1
-          fi
-
           id="$(gh api "/user/packages/maven/$PACKAGE_NAME/versions" \
             --paginate \
             --jq ".[] | select(.name == \"$RC_VERSION\") | .id" \
